@@ -49,18 +49,27 @@ class DataService {
     },
   ];
 
+  private archivedProducts: Product[] = [];
+
   getAllProducts(): Product[] {
     return this.products;
   }
 
+  getArchivedProducts(): Product[] {
+    return this.archivedProducts;
+  }
+
   getProductById(id: number): Product | undefined {
-    return this.products.find((p) => p.id === id);
+    return (
+      this.products.find((p) => p.id === id) ||
+      this.archivedProducts.find((p) => p.id === id)
+    );
   }
 
   addProduct(product: Omit<Product, 'id' | 'date'>): Product {
     const newProduct: Product = {
       ...product,
-      id: this.products.length + 1,
+      id: this.generateNewId(),
       date: new Date().toISOString().split('T')[0],
     };
     this.products.push(newProduct);
@@ -79,14 +88,105 @@ class DataService {
     return undefined;
   }
 
-  deleteProduct(id: number): boolean {
-    const initialLength = this.products.length;
-    this.products = this.products.filter((p) => p.id !== id);
-    return this.products.length < initialLength;
+  archiveProduct(id: number): boolean {
+    const index = this.products.findIndex((p) => p.id === id);
+    if (index !== -1) {
+      const [archivedProduct] = this.products.splice(index, 1);
+      this.archivedProducts.push(archivedProduct);
+      return true;
+    }
+    return false;
+  }
+
+  restoreProduct(id: number): boolean {
+    const index = this.archivedProducts.findIndex((p) => p.id === id);
+    if (index !== -1) {
+      const [restoredProduct] = this.archivedProducts.splice(index, 1);
+      this.products.push(restoredProduct);
+      return true;
+    }
+    return false;
+  }
+
+  private generateNewId(): number {
+    const allProducts = [...this.products, ...this.archivedProducts];
+    const maxId = allProducts.reduce(
+      (max, product) => (product.id > max ? product.id : max),
+      0
+    );
+    return maxId + 1;
   }
 }
 
-// Product List Component (Read)
+// Archive List Component
+@Component({
+  selector: 'app-archive-list',
+  standalone: true,
+  imports: [CurrencyPipe, DatePipe, RouterModule],
+  template: `
+    <div class="card">
+      <div class="card-header bg-secondary text-white">
+        <h4>Archived Products</h4>
+      </div>
+      <div class="card-body">
+        <table class="table table-striped table-hover">
+          <thead class="table-dark">
+            <tr>
+              <th>ID</th>
+              <th>Product Name</th>
+              <th>Category</th>
+              <th>Price</th>
+              <th>Added Date</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (product of archivedProducts; track product.id) {
+            <tr>
+              <td>{{ product.id }}</td>
+              <td>{{ product.name }}</td>
+              <td>{{ product.category }}</td>
+              <td>{{ product.price | currency }}</td>
+              <td>{{ product.date | date : 'mediumDate' }}</td>
+              <td>
+                <button
+                  class="btn btn-sm btn-success"
+                  (click)="restoreProduct(product.id)"
+                >
+                  Restore
+                </button>
+              </td>
+            </tr>
+            }
+          </tbody>
+        </table>
+        <a routerLink="/" class="btn btn-primary">Back to Products</a>
+      </div>
+    </div>
+  `,
+})
+export class ArchiveListComponent implements OnInit {
+  archivedProducts: Product[] = [];
+
+  constructor(private dataService: DataService, private router: Router) {}
+
+  ngOnInit() {
+    this.loadArchivedProducts();
+  }
+
+  loadArchivedProducts() {
+    this.archivedProducts = this.dataService.getArchivedProducts();
+  }
+
+  restoreProduct(id: number) {
+    if (confirm('Are you sure you want to restore this product?')) {
+      this.dataService.restoreProduct(id);
+      this.loadArchivedProducts();
+    }
+  }
+}
+
+// Product List Component
 @Component({
   selector: 'app-product-list',
   standalone: true,
@@ -97,7 +197,10 @@ class DataService {
         class="card-header bg-primary text-white d-flex justify-content-between align-items-center"
       >
         <h4>Product List</h4>
-        <a routerLink="/add" class="btn btn-light">Add New Product</a>
+        <div>
+          <a routerLink="/add" class="btn btn-light me-2">Add New Product</a>
+          <a routerLink="/archive" class="btn btn-light">View Archive</a>
+        </div>
       </div>
       <div class="card-body">
         <table class="table table-striped table-hover">
@@ -128,9 +231,9 @@ class DataService {
                 </button>
                 <button
                   class="btn btn-sm btn-danger"
-                  (click)="deleteProduct(product.id)"
+                  (click)="archiveProduct(product.id)"
                 >
-                  Delete
+                  Archive
                 </button>
               </td>
             </tr>
@@ -154,15 +257,15 @@ export class ProductListComponent implements OnInit {
     this.products = this.dataService.getAllProducts();
   }
 
-  deleteProduct(id: number) {
-    if (confirm('Are you sure you want to delete this product?')) {
-      this.dataService.deleteProduct(id);
+  archiveProduct(id: number) {
+    if (confirm('Are you sure you want to archive this product?')) {
+      this.dataService.archiveProduct(id);
       this.loadProducts();
     }
   }
 }
 
-// Add Product Component (Create)
+// Add Product Component
 @Component({
   selector: 'app-add-product',
   standalone: true,
@@ -247,7 +350,7 @@ export class AddProductComponent {
   }
 }
 
-// Edit Product Component (Update)
+// Edit Product Component (This was missing in previous versions)
 @Component({
   selector: 'app-edit-product',
   standalone: true,
@@ -348,6 +451,7 @@ const routes: Routes = [
   { path: '', component: ProductListComponent, pathMatch: 'full' },
   { path: 'add', component: AddProductComponent },
   { path: 'edit/:id', component: EditProductComponent },
+  { path: 'archive', component: ArchiveListComponent },
 ];
 
 // App Component
@@ -361,6 +465,9 @@ const routes: Routes = [
         <a class="navbar-brand" routerLink="/">Product Manager</a>
         <div>
           <a routerLink="/" class="btn btn-outline-light me-2">View Products</a>
+          <a routerLink="/archive" class="btn btn-outline-light me-2"
+            >View Archive</a
+          >
           <a routerLink="/add" class="btn btn-outline-light">Add Product</a>
         </div>
       </div>
