@@ -4,6 +4,7 @@ export type Product = {
   category: string;
   price: number;
   date: string;
+  is_archived: boolean; 
 };
 
 export type Database = {

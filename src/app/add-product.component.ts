@@ -5,7 +5,6 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { RouterModule } from '@angular/router';
 
-
 @Component({
   selector: 'app-add-product',
   standalone: true,
@@ -36,11 +35,13 @@ import { RouterModule } from '@angular/router';
   `
 })
 export class AddProductComponent {
-  model = { name: '', category: '', price: 0 };
+  // Include is_archived field and set it to false by default for new products
+  model = { name: '', category: '', price: 0, is_archived: false };
 
   constructor(private ds: DataService, private router: Router) {}
 
   async submit() {
+    // Pass the complete model with is_archived to the add method
     await this.ds.add(this.model);
     this.router.navigate(['']);
   }
