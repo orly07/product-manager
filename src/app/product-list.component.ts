@@ -1,13 +1,13 @@
 import { Component, OnInit } from '@angular/core';
 import { CommonModule, CurrencyPipe, DatePipe } from '@angular/common';
 import { RouterModule } from '@angular/router';
-import { DataService} from './data.service';
+import { DataService } from './data.service';
 import { Product } from '../types/supabase';
 
 @Component({
   selector: 'app-product-list',
   standalone: true,
-  imports: [CommonModule, RouterModule, CurrencyPipe, DatePipe],
+  imports: [CommonModule, RouterModule, DatePipe],
   template: `
     <div class="card">
       <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
@@ -33,7 +33,7 @@ import { Product } from '../types/supabase';
               <td>{{ product.id }}</td>
               <td>{{ product.name }}</td>
               <td>{{ product.category }}</td>
-              <td>{{ product.price | currency }}</td>
+              <td>{{ product.price}}</td>
               <td>{{ product.date | date: 'mediumDate' }}</td>
               <td>
                 <a [routerLink]="['/edit', product.id]" class="btn btn-sm btn-warning me-1">Edit</a>

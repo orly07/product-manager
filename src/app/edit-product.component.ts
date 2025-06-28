@@ -2,9 +2,8 @@ import { Component, OnInit } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router, RouterModule } from '@angular/router';
 import { CommonModule } from '@angular/common';
-import { DataService} from './data.service';
+import { DataService } from './data.service';
 import { Product } from '../types/supabase';
-
 
 @Component({
   selector: 'app-edit-product',
@@ -35,7 +34,7 @@ import { Product } from '../types/supabase';
           </div>
 
           <div class="mb-3">
-            <label class="form-label">Price ($)</label>
+            <label class="form-label">Price</label>
             <input type="number" class="form-control" [(ngModel)]="model.price" name="price" min="0" step="0.01" required />
           </div>
 
@@ -60,9 +59,12 @@ export class EditProductComponent implements OnInit {
   async ngOnInit() {
     const id = +this.ar.snapshot.paramMap.get('id')!;
     const all = await this.ds.getAll();
-    const found = all.find((p) => p.id === id);
-    if (found) this.model = found;
-    else this.r.navigate(['/']);
+    const found = all.find(p => p.id === id);
+    if (found) {
+      this.model = found;
+    } else {
+      this.r.navigate(['/']);
+    }
   }
 
   async submit() {
